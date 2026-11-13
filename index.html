@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<title>Vare optælling</title>
+<style>
+body { font-family: Arial; max-width: 600px; margin: 20px; }
+select, input, button { font-size: 16px; padding: 8px; margin: 5px 0; width: 100%; }
+table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+td, th { border: 1px solid grey; padding: 6px; }
+</style>
+</head>
+<body>
+
+<h1>Vare optælling</h1>
+
+<label>Vælg varenummer:</label>
+<select id="varevalg"></select>
+
+<label>Antal:</label>
+<input id="antal" type="number" value="1">
+
+<button onclick="gemLinje()">Gem til ark 2</button>
+<button onclick="hentCSV()">Download ark 2 som CSV</button>
+
+<h2>Ark 2 - gemt lokalt</h2>
+<table>
+<thead><tr><th>Varenummer</th><th>Beskrivelse</th><th>Antal</th></tr></thead>
+<tbody id="tabel"></tbody>
+</table>
+
+<script>
+// 1. Læs varer.csv
+fetch("varer.csv")
+  .then(svar => svar.text())
+  .then(tekst => {
+    let linjer = tekst.trim().split("\n");
+    linjer.shift(); // spring overskrift over
+    let valg = document.getElementById("varevalg");
+    for (let linje of linjer) {
+      let [nummer, navn] = linje.split(",");
+      let option = document.createElement("option");
+      option.value = nummer;
+      option.textContent = nummer + " - " + navn;
+      valg.appendChild(option);
+    }
+  });
+
+// 2. Vis ark 2 fra lokal lagring
+function visTabel() {
+  let data = JSON.parse(localStorage.getItem("ark2") || "[]");
+  let tabel = document.getElementById("tabel");
+  tabel.innerHTML = "";
+  for (let r of data) {
+    tabel.innerHTML += `<tr><td>${r.nummer}</td><td>${r.navn}</td><td>${r.antal}</td></tr>`;
+  }
+}
+
+// 3. Gem en ny linje til ark 2
+function gemLinje() {
+  let valg = document.getElementById("varevalg");
+  let nummer = valg.value;
+  let navn = valg.selectedOptions[0].textContent;
+  let antal = document.getElementById("antal").value;
+
+  let data = JSON.parse(localStorage.getItem("ark2") || "[]");
+  data.push({ nummer: nummer, navn: navn, antal: antal });
+  localStorage.setItem("ark2", JSON.stringify(data));
+  visTabel();
+}
+
+// 4. Download ark 2 som CSV
+function hentCSV() {
+  let data = JSON.parse(localStorage.getItem("ark2") || "[]");
+  let csv = "varenummer,beskrivelse,antal\n";
+  for (let r of data) {
+    csv += `${r.nummer},${r.navn},${r.antal}\n`;
+  }
+  let link = document.createElement("a");
+  link.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+  link.download = "ark2.csv";
+  link.click();
+}
+
+visTabel();
+</script>
+</body>
+</html>
